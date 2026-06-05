@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>External VPN</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #090d16 0%, #111827 100%);
+            color: #ffffff;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+            height: 100vh; box-sizing: border-box; padding: 40px 20px; overflow: hidden; position: relative;
+        }
+
+        body::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" opacity="0.07" fill="%2338bdf8"><path d="M150,150 Q200,100 250,150 T350,150 T450,200 T600,150 T750,250 T900,180" stroke="%2338bdf8" stroke-width="2" fill="none"/><circle cx="200" cy="130" r="3"/><circle cx="300" cy="180" r="4"/><circle cx="450" cy="250" r="3"/></svg>'), 
+                             radial-gradient(circle at center, rgba(56, 189, 248, 0.08) 0%, transparent 70%);
+            background-size: cover; background-position: center; z-index: 0; pointer-events: none;
+        }
+
+        h1, .power-wrapper, .status-text, .server-select-container, .web-proxy-box { z-index: 1; }
+
+        h1 {
+            font-size: 30px; letter-spacing: 3px; text-transform: uppercase;
+            color: #38bdf8; text-shadow: 0 0 20px rgba(56, 189, 248, 0.5); margin: 0; font-weight: 800;
+        }
+
+        .power-wrapper { position: relative; width: 200px; height: 200px; display: flex; justify-content: center; align-items: center; }
+
+        .power-btn {
+            width: 160px; height: 160px; background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
+            border: 5px solid #ef4444; border-radius: 50%; color: #ef4444; font-size: 22px; font-weight: 800;
+            cursor: pointer; display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.3); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); user-select: none;
+        }
+
+        .loader-ring {
+            position: absolute; width: 190px; height: 190px; border: 4px solid transparent;
+            border-top: 4px solid #f59e0b; border-radius: 50%; display: none; animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .power-btn.connected { border-color: #22c55e; color: #22c55e; box-shadow: 0 0 50px rgba(34, 197, 94, 0.6); }
+
+        .status-text { font-size: 18px; color: #94a3b8; margin-top: -10px; font-weight: 600; letter-spacing: 1px; }
+        .status-text.connecting { color: #f59e0b; }
+        .status-text.connected { color: #22c55e; }
+
+        /* Всплывающий блок для веб-серфинга */
+        .web-proxy-box {
+            width: 100%; max-width: 320px; background: rgba(30, 41, 59, 0.8);
+            border: 2px solid #38bdf8; border-radius: 12px; padding: 15px; box-sizing: border-box;
+            display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .web-proxy-box input {
+            width: 100%; padding: 12px; background: #0f172a; border: 1px solid #38bdf8;
+            border-radius: 8px; color: white; font-size: 14px; box-sizing: border-box; outline: none; margin-bottom: 10px;
+        }
+
+        .web-proxy-box button {
+            width: 100%; padding: 12px; background: #38bdf8; border: none; border-radius: 8px;
+            color: #0f172a; font-weight: bold; font-size: 15px; cursor: pointer; transition: background 0.2s;
+        }
+
+        .server-select-container { width: 100%; max-width: 320px; }
+        select {
+            width: 100%; padding: 14px 20px; background-color: #1e293b; border: 2px solid #38bdf8;
+border-radius: 12px; color: #ffffff; font-size: 16px; font-weight: 600; outline: none; cursor: pointer;
+            appearance: none; -webkit-appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%2338bdf8" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+            background-repeat: no-repeat; background-position: right 15px center; background-size: 18px;
+        }
+        select option { background-color: #0f172a; color: #ffffff; }
+    </style>
+</head>
+<body>
+
+    <h1>External VPN</h1>
+
+    <div class="power-wrapper">
+        <div class="loader-ring" id="loader"></div>
+        <div class="power-btn" id="vpnButton">ВКЛ</div>
+    </div>
+
+    <div class="status-text" id="status">Отключено</div>
+
+    <div class="web-proxy-box" id="proxyBox">
+        <input type="text" id="targetUrl" value="https://youtube.com" placeholder="Вставьте ссылку на сайт...">
+        <button id="launchBtn">Открыть свободно</button>
+    </div>
+
+    <div class="server-select-container">
+        <select id="serverSelect">
+            <option value="nl">🇳🇱 External Free (Амстердам)</option>
+            <option value="de">🇩🇪 External Free (Франкфурт)</option>
+        </select>
+    </div>
+
+    <script>
+        const vpnButton = document.getElementById('vpnButton');
+        const loader = document.getElementById('loader');
+        const statusText = document.getElementById('status');
+        const serverSelect = document.getElementById('serverSelect');
+        const proxyBox = document.getElementById('proxyBox');
+        const launchBtn = document.getElementById('launchBtn');
+        const targetUrl = document.getElementById('targetUrl');
+
+        let currentState = 'disconnected'; 
+
+        vpnButton.addEventListener('click', () => {
+            if (currentState === 'disconnected') {
+                currentState = 'connecting';
+                vpnButton.innerText = 'WAIT';
+                vpnButton.style.borderColor = '#f59e0b'; vpnButton.style.color = '#f59e0b';
+                loader.style.display = 'block';
+                statusText.innerText = 'Запуск туннеля...';
+                statusText.className = 'status-text connecting';
+                serverSelect.disabled = true;
+
+                setTimeout(() => {
+                    currentState = 'connected';
+                    vpnButton.innerText = 'ВЫКЛ';
+                    vpnButton.classList.add('connected');
+                    loader.style.display = 'none';
+                    statusText.innerText = 'Подключено';
+                    statusText.className = 'status-text connected';
+                    proxyBox.style.display = 'block'; // Показываем строку прокси
+                }, 2000);
+
+            } else if (currentState === 'connected') {
+                currentState = 'disconnected';
+                vpnButton.innerText = 'ВКЛ';
+                vpnButton.classList.remove('connected');
+                vpnButton.style.borderColor = '#ef4444'; vpnButton.style.color = '#ef4444';
+                statusText.innerText = 'Отключено';
+                statusText.className = 'status-text';
+                serverSelect.disabled = false;
+                proxyBox.style.display = 'none';
+            }
+        });
+
+        // Магия обхода блокировок без системного VPN
+        launchBtn.addEventListener('click', () => {
+            const url = targetUrl.value;
+            // Перенаправляем запрос через надежный бесплатный веб-шлюз CroxyProxy
+            const proxyGateway = "https://www.croxyproxy.com/_ru/gateway?url=";
+            window.open(proxyGateway + encodeURIComponent(url), '_blank');
+        });
+    </script>
+</body>
+</html>
