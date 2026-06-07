@@ -1,0 +1,30 @@
+body { margin: 0; font-family: sans-serif; background-color: #ffffff; height: 100vh; display: flex; justify-content: center; align-items: center; }
+
+.container { z-index: 1; text-align: center; }
+
+h1 { color: #333; margin-bottom: 30px; }
+
+/* Кнопка */
+.vpn-circle {
+    width: 180px; height: 180px; background: #007bff;
+    border-radius: 50%; color: white; display: flex;
+    justify-content: center; align-items: center;
+    cursor: pointer; font-weight: bold; margin: 0 auto 30px;
+    transition: all 0.3s;
+}
+
+/* Анимация вращения при подключении */
+.spinning {
+    animation: spin 1s linear infinite;
+    border: 5px dashed white;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* Фон веточки */
+.background-animation {
+    position: absolute; width: 100%; height: 100%; z-index: 0; opacity: 0.4;
+}
+.leaf { animation: leafPulse 3s infinite ease-in-out; }
+@keyframes leafPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+
+.server-selector select { padding: 10px; border-radius: 5px; width: 200px; }
